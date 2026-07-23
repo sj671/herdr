@@ -138,7 +138,19 @@ impl App {
                 .state
                 .focused_runtime_in_workspace(&self.terminal_runtimes, ws_idx)
             {
-                let _ = rt.send_paste(text).await;
+                let _ = rt.send_paste(text.clone()).await;
+            }
+            if let Some(focused) = self
+                .state
+                .workspaces
+                .get(ws_idx)
+                .and_then(crate::workspace::Workspace::focused_pane_id)
+            {
+                for pane_id in self.sync_input_sibling_panes(ws_idx, focused) {
+                    if let Some(rt) = self.lookup_runtime_sender(ws_idx, pane_id) {
+                        let _ = rt.send_paste(text.clone()).await;
+                    }
+                }
             }
         }
     }

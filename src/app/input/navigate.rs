@@ -377,6 +377,23 @@ impl App {
                 self.state.sidebar_collapsed = !self.state.sidebar_collapsed;
                 leave_navigate_mode(&mut self.state);
             }
+            NavigateAction::ToggleSyncInput => {
+                let previous_toast = self.state.toast.clone();
+                self.state.sync_input = !self.state.sync_input;
+                self.state.toast = Some(crate::app::state::ToastNotification {
+                    kind: crate::app::state::ToastKind::Finished,
+                    title: if self.state.sync_input {
+                        "sync input on".to_string()
+                    } else {
+                        "sync input off".to_string()
+                    },
+                    context: "keystrokes mirror to all panes in this tab".to_string(),
+                    position: None,
+                    target: None,
+                });
+                self.sync_toast_deadline(previous_toast);
+                leave_navigate_mode(&mut self.state);
+            }
             NavigateAction::CyclePaneNext => {
                 self.cycle_pane_via_api(false);
                 leave_navigate_mode(&mut self.state);
@@ -1320,6 +1337,7 @@ pub(crate) enum NavigateAction {
     Zoom,
     EnterResizeMode,
     ToggleSidebar,
+    ToggleSyncInput,
     CyclePaneNext,
     CyclePanePrevious,
     LastPane,
@@ -1456,6 +1474,7 @@ fn non_indexed_action_for_key(
         (&kb.zoom, NavigateAction::Zoom),
         (&kb.resize_mode, NavigateAction::EnterResizeMode),
         (&kb.toggle_sidebar, NavigateAction::ToggleSidebar),
+        (&kb.sync_input, NavigateAction::ToggleSyncInput),
         (&kb.reload_config, NavigateAction::ReloadConfig),
         (
             &kb.open_notification_target,
@@ -1688,6 +1707,10 @@ pub(super) fn execute_navigate_action_in_context(
         NavigateAction::EnterResizeMode => state.mode = Mode::Resize,
         NavigateAction::ToggleSidebar => {
             state.sidebar_collapsed = !state.sidebar_collapsed;
+            leave_navigate_mode(state);
+        }
+        NavigateAction::ToggleSyncInput => {
+            state.sync_input = !state.sync_input;
             leave_navigate_mode(state);
         }
         NavigateAction::CyclePaneNext => {

@@ -48,7 +48,40 @@ impl App {
         let sent = self
             .lookup_runtime_sender(input.ws_idx, input.pane_id)
             .is_some_and(|runtime| runtime.try_send_bytes(input.bytes).is_ok());
+        for pane_id in self.sync_input_sibling_panes(input.ws_idx, input.pane_id) {
+            if let Some(runtime) = self.lookup_runtime_sender(input.ws_idx, pane_id) {
+                runtime.scroll_reset();
+                let bytes = runtime.encode_terminal_key(key);
+                if !bytes.is_empty() {
+                    let _ = runtime.try_send_bytes(Bytes::from(bytes));
+                }
+            }
+        }
         sent.then_some(input.target)
+    }
+
+    /// Panes in the focused tab that should receive mirrored input, excluding
+    /// the focused pane. Empty when sync input is off.
+    pub(super) fn sync_input_sibling_panes(
+        &self,
+        ws_idx: usize,
+        focused: crate::layout::PaneId,
+    ) -> Vec<crate::layout::PaneId> {
+        if !self.state.sync_input {
+            return Vec::new();
+        }
+        self.state
+            .workspaces
+            .get(ws_idx)
+            .and_then(crate::workspace::Workspace::active_tab)
+            .map(|tab| {
+                tab.panes
+                    .keys()
+                    .copied()
+                    .filter(|id| *id != focused)
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 
     fn prepare_terminal_key_forward(&mut self, key: TerminalKey) -> Option<PreparedPaneInput> {
@@ -369,6 +402,15 @@ impl App {
         } else {
             false
         };
+        for pane_id in self.sync_input_sibling_panes(input.ws_idx, input.pane_id) {
+            if let Some(runtime) = self.lookup_runtime_sender(input.ws_idx, pane_id) {
+                runtime.scroll_reset();
+                let bytes = runtime.encode_terminal_key(key);
+                if !bytes.is_empty() {
+                    let _ = runtime.send_bytes(Bytes::from(bytes)).await;
+                }
+            }
+        }
         sent.then_some(input.target)
     }
 }

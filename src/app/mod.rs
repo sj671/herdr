@@ -622,6 +622,7 @@ impl App {
             sidebar_width_auto: false,
             sidebar_collapsed: config.ui.sidebar_start_collapsed,
             sidebar_collapsed_mode: config.ui.sidebar_collapsed_mode,
+            sync_input: false,
             sidebar_section_split,
             agent_panel_sort,
             agent_view_override: None,
