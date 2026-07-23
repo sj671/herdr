@@ -20,6 +20,39 @@
 
 ---
 
+> **This fork ([sj671/herdr](https://github.com/sj671/herdr)) adds native synchronized input** — a tmux-style `synchronize-panes` toggle built into the core. See [synchronized input](#synchronized-input-fork-feature) below. Everything else matches upstream [ogulcancelik/herdr](https://github.com/ogulcancelik/herdr).
+
+## synchronized input (fork feature)
+
+Mirror everything you type in the focused pane to every other pane in the same tab — run the same command on several servers, drive several shells at once.
+
+**Toggle**: `prefix+shift+y` (default prefix is `Ctrl-b`, so `Ctrl-b Shift-Y`). A toast confirms *sync input on* / *sync input off*. The binding is configurable:
+
+```toml
+[keys]
+sync_input = "prefix+shift+y"
+```
+
+**How it works**: while sync is on, each keystroke and paste sent to the focused pane is also encoded per-pane (respecting each pane's keyboard protocol) and written to every sibling pane's PTY in the focused tab. Because input is duplicated at the source rather than scraped from screen output, everything works:
+
+- control keys (`Ctrl-C`, `Ctrl-D`, `Ctrl-Z`), arrows, `Tab` completion, `Esc`
+- passwords and other non-echoed input
+- interactive programs (`vim`, `less`, REPLs)
+- pastes, including bracketed paste
+
+**Scope and behavior**:
+
+- Mirroring applies only to panes in the *focused tab*. Other tabs and workspaces are untouched.
+- Herdr keybindings (prefix chords, pane navigation, etc.) are intercepted before mirroring, so only input that actually reaches the focused pane is duplicated.
+- Popup panes are excluded.
+- The toggle is session-global and follows the focused tab; it is not per-tab state and does not persist across server restarts (always starts off).
+
+This replaces the [herdr-synchronize-input](https://github.com/forteleaf/herdr-synchronize-input) plugin, which watches screen output and therefore cannot mirror control keys, passwords, or interactive programs. Uninstall that plugin before using this fork so the two do not double-send, and remove its `prefix+shift+y` `[[keys.command]]` block from `~/.config/herdr/config.toml` so it does not shadow the native binding.
+
+**Building this fork**: requires Zig 0.15.2 for the vendored libghostty-vt (set `ZIG=/path/to/zig-0.15.2/zig` if it is not on `PATH`), then `cargo build --release`. Implementation lives on the [`sync-input`](https://github.com/sj671/herdr/tree/sync-input) branch: `keys.sync_input` config, `AppState.sync_input` flag, and key/paste fan-out in `src/app/input/terminal.rs` and `src/app/input/mod.rs`.
+
+---
+
 https://github.com/user-attachments/assets/043ec09f-4bdd-41d5-aee0-8fda6b83e267
 
 **agent multiplexer that lives in your terminal.**
