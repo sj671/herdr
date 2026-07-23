@@ -98,6 +98,23 @@ fn main() {
     println!("cargo:rustc-link-search=native={}", lib_dir.display());
     if target.contains("apple-darwin") {
         let static_lib = lib_dir.join("libghostty-vt.a");
+        // Zig's archiver emits archive members with 2-byte alignment, which
+        // Apple's newer ld rejects ("64-bit mach-o member not 8-byte
+        // aligned"). Repack with Apple libtool to realign the members.
+        let aligned_lib = lib_dir.join("libghostty-vt-aligned.a");
+        let libtool_status = Command::new("libtool")
+            .arg("-static")
+            .arg("-o")
+            .arg(&aligned_lib)
+            .arg(&static_lib)
+            .status()
+            .expect("failed to execute libtool to realign libghostty-vt.a");
+        assert!(
+            libtool_status.success(),
+            "libtool realign of libghostty-vt.a failed: {libtool_status}"
+        );
+        fs::rename(&aligned_lib, &static_lib)
+            .expect("failed to replace libghostty-vt.a with realigned archive");
         println!("cargo:rustc-link-arg={}", static_lib.display());
     } else if target.contains("windows-msvc") {
         println!("cargo:rustc-link-lib=static=ghostty-vt-static");
