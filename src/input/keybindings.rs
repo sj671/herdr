@@ -54,6 +54,7 @@ pub(crate) enum KeybindAction {
     EditScrollback,
     CopyMode,
     Zoom,
+    ToggleSyncInput,
     EnterResizeMode,
     ResizePaneLeft,
     ResizePaneDown,
@@ -144,6 +145,7 @@ pub(crate) fn resolve_non_indexed_action(
         (&keybinds.resize_pane_down, KeybindAction::ResizePaneDown),
         (&keybinds.resize_pane_up, KeybindAction::ResizePaneUp),
         (&keybinds.resize_pane_right, KeybindAction::ResizePaneRight),
+        (&keybinds.sync_input, KeybindAction::ToggleSyncInput),
         (&keybinds.toggle_sidebar, KeybindAction::ToggleSidebar),
         (&keybinds.reload_config, KeybindAction::ReloadConfig),
         (

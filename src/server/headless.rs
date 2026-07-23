@@ -302,6 +302,50 @@ fn spawn_windows_client_accept_thread(
 }
 
 impl HeadlessServer {
+    /// Mirror non-mouse pane input events to the sibling panes in the same
+    /// tab when synchronized input is enabled (tmux synchronize-panes).
+    fn mirror_sync_input_events(
+        &self,
+        workspace_index: usize,
+        source_pane: crate::layout::PaneId,
+        events: &[protocol::ClientPaneInputEvent],
+    ) {
+        if !self.app.state.sync_input {
+            return;
+        }
+        let mirrored: Vec<protocol::ClientPaneInputEvent> = events
+            .iter()
+            .filter(|event| !matches!(event, protocol::ClientPaneInputEvent::Mouse { .. }))
+            .cloned()
+            .collect();
+        if mirrored.is_empty() {
+            return;
+        }
+        let Some(workspace) = self.app.state.workspaces.get(workspace_index) else {
+            return;
+        };
+        let Some(tab_idx) = workspace.find_tab_index_for_pane(source_pane) else {
+            return;
+        };
+        let siblings: Vec<crate::layout::PaneId> = workspace.tabs[tab_idx]
+            .panes
+            .keys()
+            .copied()
+            .filter(|id| *id != source_pane)
+            .collect();
+        for pane_id in siblings {
+            if let Some(runtime) = self.app.state.runtime_for_pane_in_workspace(
+                &self.app.terminal_runtimes,
+                workspace_index,
+                pane_id,
+            ) {
+                if let Err(err) = apply_client_pane_input_events(runtime, &mirrored) {
+                    warn!(?pane_id, err = %err, "sync input mirror failed");
+                }
+            }
+        }
+    }
+
     /// Creates and starts the headless server.
     ///
     /// This:
@@ -2438,7 +2482,9 @@ impl HeadlessServer {
                 if let Err(err) = apply_client_pane_input_events(runtime, &events) {
                     warn!(client_id, pane_id, err = %err, "targeted client shell input failed");
                 }
-                foreground_changed | geometry_changed || runtime.scroll_metrics() != scroll_before
+                let scroll_changed = runtime.scroll_metrics() != scroll_before;
+                self.mirror_sync_input_events(workspace_index, runtime_pane_id, &events);
+                foreground_changed | geometry_changed || scroll_changed
             }
             ServerEvent::ClientShellPopupInput {
                 client_id,

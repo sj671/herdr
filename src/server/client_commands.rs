@@ -36,6 +36,7 @@ const CLIENT_SHELL_METHODS: &[&str] = &[
     "product_announcement.dismiss",
     "release_notes.dismiss",
     "server.reload_config",
+    "session.sync_input_toggle",
     "tab.close",
     "tab.create",
     "tab.focus",

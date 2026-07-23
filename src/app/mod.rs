@@ -480,6 +480,7 @@ impl App {
             prefix_code,
             prefix_mods,
             headless_size: config.headless_size(),
+            sync_input: false,
             agent_panel_sort,
             agent_view_override: None,
             sidebar_agents: config.ui.sidebar.agents.clone(),

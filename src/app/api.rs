@@ -952,6 +952,27 @@ impl App {
                     },
                 }
             }
+            Method::SessionSyncInputToggle(_) => {
+                self.state.sync_input = !self.state.sync_input;
+                let title = if self.state.sync_input {
+                    "sync input on"
+                } else {
+                    "sync input off"
+                };
+                let previous_toast = self.state.toast.clone();
+                self.state.toast = Some(crate::app::state::ToastNotification {
+                    kind: crate::app::state::ToastKind::Finished,
+                    title: title.to_string(),
+                    context: String::new(),
+                    position: None,
+                    target: None,
+                });
+                self.sync_toast_deadline(previous_toast);
+                SuccessResponse {
+                    id: request.id,
+                    result: ResponseResult::Ok {},
+                }
+            }
             Method::NotificationShow(params) => {
                 return self.handle_notification_show(request.id, params);
             }
