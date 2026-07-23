@@ -64,6 +64,8 @@ mv herdr-macos-aarch64 ~/.local/bin/herdr
 
 macOS may quarantine the download; if it refuses to run, clear it with `xattr -d com.apple.quarantine ~/.local/bin/herdr`.
 
+Prebuilt binaries: macOS Apple Silicon, Linux x86_64, Linux aarch64. Intel Macs currently need to build from source.
+
 **From source**: requires a Rust toolchain (1.85+) and Zig 0.15.2 for the vendored libghostty-vt (set `ZIG=/path/to/zig-0.15.2/zig` if it is not on `PATH`):
 
 ```bash
